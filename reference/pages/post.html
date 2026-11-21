@@ -1,0 +1,36 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Apply for Job · Kamana</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<header class="top"><a class="brand" href="/" aria-label="Kamana home"><span class="mark">K</span></a><nav><a href="/search">Find Employees</a><a href="/post">Apply for Job</a></nav></header>
+<main>
+      <form class="form-card job-application-form" method="post">
+        <input type="hidden" name="csrf" value="eNF-LZI8vw4MpCfowiI5yoAo5VrXZ5kj">
+        <div class="form-grid">
+          <label>Name / नाम<input name="name" maxlength="100" required></label>
+          <label>State / राज्य<select data-state name="state" required><option value="">Choose a state / राज्य चुनें</option></select></label>
+          <label>City / शहर<select data-city name="city" required><option value="">Choose a state first / पहले राज्य चुनें</option></select></label>
+          <input type="hidden" name="location_mode" data-location-mode value="city">
+          <label class="conditional" data-city-other-wrap>Enter city / शहर दर्ज करें<input name="city_other" maxlength="100" placeholder="Type your city / शहर लिखें"></label>
+          <label class="conditional" data-pincode-wrap>PIN code / पिन कोड<input name="pincode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN code / 6 अंकों का पिन कोड"></label>
+          <label>Trade / व्यवसाय (optional / वैकल्पिक)<select data-trade name="trade"><option value="">Choose a trade / व्यवसाय चुनें (optional / वैकल्पिक)</option></select></label>
+          <label class="conditional" data-trade-other-wrap>Enter trade / व्यवसाय दर्ज करें<input name="trade_other" maxlength="100" placeholder="Type a trade / व्यवसाय लिखें"></label>
+          <label>Job Profile / कार्य-प्रोफ़ाइल<select data-job name="job_profile" required><option value="">Choose a job profile / कार्य-प्रोफ़ाइल चुनें</option></select></label>
+          <label class="conditional" data-job-other-wrap>Enter job profile / कार्य-प्रोफ़ाइल दर्ज करें<input name="job_other" maxlength="120" placeholder="Type your job / काम लिखें"></label>
+          <label>Expected Salary / अपेक्षित वेतन<input name="experience" maxlength="80" placeholder="e.g. ₹20,000 per month / जैसे ₹20,000 प्रति माह (optional / वैकल्पिक)"></label>
+          <label class="wide">Specialisation / विशेषज्ञता (optional / वैकल्पिक)<textarea name="description" maxlength="1200" rows="3"></textarea></label>
+          <div class="contact-info-row wide">
+            <label>Email / ईमेल (optional / वैकल्पिक)<input type="email" name="email" maxlength="254"></label>
+            <div class="phone-otp-row">
+              <label>Mobile / मोबाइल<input type="tel" name="phone" maxlength="40" inputmode="tel" autocomplete="tel" placeholder="10-digit Indian mobile / भारत का 10 अंकों का मोबाइल नंबर" required></label>
+              <button class="text-link" type="button" data-send-otp>Send OTP / OTP भेजें</button>
+            </div>
+          </div>
+          <div class="otp-entry wide">
+            <label>OTP / ओटीपी<input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" data-otp-code placeholder="Enter OTP / ओटीपी दर्ज करें" required></label>
+            <span class="otp-message" data-otp-message aria-live="polite"></span>
+          </div>
+          <p class="otp-explanation wide">A one-time SMS code confirms you control this mobile. Do not use another person’s number. / SMS कोड से पुष्टि होती है कि यह मोबाइल आपका है। किसी दूसरे व्यक्ति का नंबर न दें।</p>
+          <div class="form-submit-row wide">
+            <p class="privacy-note">By clicking Submit, you agree your details may appear on Kamana, accept the <a href="/terms" target="_blank" rel="noopener">Terms of Use / उपयोग की शर्तें</a> and <a href="/privacy" target="_blank" rel="noopener">Privacy Notice / गोपनीयता सूचना</a>, and confirm you are 18 or older. / जमा करें पर क्लिक करके, आप सहमत हैं कि आपके विवरण Kamana पर दिख सकते हैं, उपयोग की शर्तें और गोपनीयता सूचना स्वीकार करते हैं, और पुष्टि करते हैं कि आपकी आयु 18 वर्ष या अधिक है।</p>
+            <button class="button" type="submit">Submit / जमा करें <span>→</span></button>
+          </div>
+        </div>
+      </form></main><footer><span>Good work starts with the right connection. / सही जुड़ाव से अच्छा काम शुरू होता है।</span><span class="footer-links"><a href="/privacy">Privacy / गोपनीयता</a><a href="/terms">Terms / शर्तें</a><a href="/safety">Safety / सुरक्षा</a><a href="/grievance">Complaints / शिकायतें</a></span><span>Kamana</span></footer><script src="/static/options.js"></script></body></html>

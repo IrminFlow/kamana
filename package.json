@@ -1,0 +1,26 @@
+{
+  "name": "kamana",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:convex": "convex dev",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex"
+  },
+  "dependencies": {
+    "@convex-dev/rate-limiter": "^0.4.3",
+    "@convex-dev/resend": "^0.2.10",
+    "convex": "^1.51.0",
+    "firebase": "^13.4.0",
+    "jose": "^6.2.18"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@vitejs/plugin-legacy": "^8.2.4",
+    "terser": "^5.51.4",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

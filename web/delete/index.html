@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delete your profile · Kamana</title><link rel="stylesheet" href="/static/style.css"></head><body>
+<!--header-->
+<main>
+      <section class="page-head"><div class="eyebrow">YOUR PROFILE · आपकी प्रोफ़ाइल</div><h1>Delete your <em>profile.</em></h1><p>Enter the mobile number on your profile. We will send a one-time code to confirm it is yours, then remove your profile from Kamana. / अपनी प्रोफ़ाइल वाला मोबाइल नंबर दर्ज करें। पुष्टि के लिए हम एक OTP भेजेंगे, फिर आपकी प्रोफ़ाइल Kamana से हटा दी जाएगी।</p></section>
+      <form class="form-card narrow delete-form" method="post">
+        <div class="phone-otp-row">
+          <label>Mobile / मोबाइल<input type="tel" name="phone" maxlength="40" inputmode="tel" autocomplete="tel" placeholder="10-digit mobile / मोबाइल नंबर" required></label>
+          <button class="text-link" type="button" data-send-otp>Send OTP / OTP भेजें</button>
+        </div>
+        <label>OTP / ओटीपी<input type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="10" data-otp-code placeholder="Enter OTP / ओटीपी दर्ज करें" required></label>
+        <span class="otp-message" data-otp-message aria-live="polite"></span>
+        <button class="button" type="submit">Delete profile / प्रोफ़ाइल हटाएँ <span>→</span></button>
+      </form>
+      <p class="notice" data-deleted hidden>Your profile has been deleted. / आपकी प्रोफ़ाइल हटा दी गई है।</p>
+</main><!--footer:hi--><script type="module" src="/src/pages/delete.ts"></script></body></html>

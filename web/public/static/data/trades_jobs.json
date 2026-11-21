@@ -1,0 +1,196 @@
+{
+  "Computer": [
+    "Computer Operator",
+    "Computer Hardware Technician",
+    "Data Entry Operator",
+    "Computer Teacher",
+    "Other (type manually)"
+  ],
+  "IT": [
+    "IT Support",
+    "Web Developer",
+    "Software Developer",
+    "Network Technician",
+    "Software Tester",
+    "System Administrator",
+    "Cybersecurity Analyst",
+    "App Developer",
+    "Other (type manually)"
+  ],
+  "Medical": [
+    "Doctor",
+    "Nurse",
+    "Dentist",
+    "Lab Technician",
+    "Healthcare Worker",
+    "Pharmacist",
+    "Medical Assistant",
+    "Physiotherapist",
+    "Radiology Technician",
+    "Optometrist",
+    "Medical Representative",
+    "Other (type manually)"
+  ],
+  "Textile": [
+    "Screen Printer",
+    "Block Printer",
+    "Embroidery Designer",
+    "Embroidery Machine Operator",
+    "QC",
+    "QA",
+    "Thread Trimmer",
+    "Helper",
+    "Washing Personal",
+    "Designer",
+    "Tailor",
+    "Machine Operator",
+    "Textile Machine Operator",
+    "Dyer",
+    "Knitter",
+    "Weaver",
+    "Other (type manually)"
+  ],
+  "Apparels": [
+    "Embroidery Designer",
+    "QC",
+    "QA",
+    "Thread Trimmer",
+    "Helper",
+    "Designer",
+    "Tailor",
+    "Fashion Designer",
+    "Garment Technician",
+    "Cutting Master",
+    "Sewing Machine Operator",
+    "Pattern Maker",
+    "Production Supervisor",
+    "Washing Personal",
+    "Other (type manually)"
+  ],
+  "Transport": [
+    "Driver",
+    "Delivery Worker",
+    "Loader",
+    "Logistics Assistant",
+    "Transport Coordinator",
+    "Fleet Manager",
+    "Warehouse Worker",
+    "Packer",
+    "Helper",
+    "Travel Agent",
+    "Other (type manually)"
+  ],
+  "Construction & Maintenance": [
+    "Architect",
+    "Carpenter",
+    "Construction Worker",
+    "Electrician",
+    "Painter",
+    "Plumber",
+    "Mason",
+    "Air Conditioning Technician",
+    "Helper",
+    "Engineer",
+    "Other (type manually)"
+  ],
+  "Electrical & Electronics": [
+    "Electrician",
+    "Electronics Technician",
+    "Appliance Repair Technician",
+    "Computer Hardware Technician",
+    "Other (type manually)"
+  ],
+  "Automobile & Mechanical": [
+    "Auto Mechanic",
+    "Mechanic",
+    "Machine Operator",
+    "Automotive Technician",
+    "Other (type manually)"
+  ],
+  "Manufacturing & Production": [
+    "Machine Operator",
+    "QC",
+    "QA",
+    "Helper",
+    "Packer",
+    "Production Supervisor",
+    "Other (type manually)"
+  ],
+  "Security & Facility Services": [
+    "Guard",
+    "Security Guard",
+    "Cleaner",
+    "Housekeeper",
+    "Caretaker",
+    "Gardener",
+    "Helper",
+    "Loader",
+    "Other (type manually)"
+  ],
+  "Hospitality & Food": [
+    "Baker",
+    "Chef / Cook",
+    "Cleaner",
+    "Event Planner",
+    "Hotel Receptionist",
+    "Travel Agent",
+    "Receptionist",
+    "Customer Service Representative",
+    "Other (type manually)"
+  ],
+  "Beauty & Wellness": [
+    "Beautician",
+    "Fitness Trainer",
+    "Makeup Artist",
+    "Nail Technician",
+    "Other (type manually)"
+  ],
+  "Education": [
+    "Teacher",
+    "Home Tutor",
+    "Childcare Worker",
+    "Translator",
+    "Other (type manually)"
+  ],
+  "Finance & Legal": [
+    "Accountant",
+    "Advocate / Lawyer",
+    "Consultant",
+    "Other (type manually)"
+  ],
+  "Retail & Sales": [
+    "Customer Service Representative",
+    "Receptionist",
+    "Salesperson",
+    "Jeweller",
+    "Delivery Worker",
+    "Other (type manually)"
+  ],
+  "Agriculture": [
+    "Agriculture Worker",
+    "Farm Worker",
+    "Gardener",
+    "Other (type manually)"
+  ],
+  "Creative & Media": [
+    "Artist / Designer",
+    "Content Writer",
+    "Graphic Designer",
+    "Photographer",
+    "Video Editor",
+    "Designer",
+    "Consultant",
+    "Other (type manually)"
+  ],
+  "Home & Personal Services": [
+    "Caretaker",
+    "Childcare Worker",
+    "Cleaner",
+    "Housekeeper",
+    "Home Tutor",
+    "Other (type manually)"
+  ],
+  "Other (type manually)": [
+    "Other (type manually)"
+  ]
+}
