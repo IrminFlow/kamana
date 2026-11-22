@@ -37,6 +37,6 @@ export const signOutAdmin = () => signOut(auth);
 
 /** Fresh ID token (Firebase refreshes it automatically when it is close to expiry). */
 export async function token(): Promise<string> {
-  if (!auth.currentUser) throw new Error("Please sign in.");
+  if (!auth.currentUser) throw new Error("Your sign-in session was not found. Please sign in again.");
   return auth.currentUser.getIdToken();
 }

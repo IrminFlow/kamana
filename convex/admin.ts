@@ -11,8 +11,15 @@ import { STATUS_LABELS, resend } from "./grievances";
  */
 async function requireAdmin(ctx: QueryCtx): Promise<string> {
   const identity = await ctx.auth.getUserIdentity();
-  const email = identity?.email?.toLowerCase();
-  if (!identity || !email || identity.emailVerified !== true) throw new ConvexError("Please sign in.");
+  if (!identity) throw new ConvexError("Please sign in.");
+  // Convex maps standard claims for OIDC providers; for customJwt they may arrive raw.
+  const rawEmail = identity.email ?? identity["email"];
+  const email = typeof rawEmail === "string" ? rawEmail.toLowerCase() : "";
+  const verified = identity.emailVerified === true || identity["email_verified"] === true;
+  if (!email || !verified) {
+    console.warn("Admin sign-in without verified email; claims:", Object.keys(identity).join(","));
+    throw new ConvexError("Sign in with a verified Google account.");
+  }
   const allowed = (process.env.ADMIN_EMAILS ?? "")
     .split(",")
     .map((s) => s.trim().toLowerCase())
