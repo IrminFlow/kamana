@@ -14,7 +14,7 @@ dropdown behaviour), on a new, lightweight backend.
 | OTP        | Firebase Phone Auth (Google Cloud); ID token verified in Convex        |
 | Email      | Resend (`@convex-dev/resend`)                                          |
 | Rate limits| `@convex-dev/rate-limiter` (per phone, per IP, per email, global caps) |
-| Admin      | No admin UI. Use the Convex dashboard's readable tables.               |
+| Admin      | `/admin`: Google sign-in (Firebase), allowlist in `ADMIN_EMAILS`        |
 
 ## Why writes go through Vercel `/api` functions
 
@@ -70,5 +70,5 @@ Vercel functions, which:
 - Vercel: `VITE_CONVEX_URL`, `CONVEX_URL`, `SERVER_SECRET`
 - Vercel (public, baked into the page): `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`,
   `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_APP_ID`
-- Convex: `SERVER_SECRET`, `FIREBASE_PROJECT_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `GRIEVANCE_INBOX`
+- Convex: `SERVER_SECRET`, `FIREBASE_PROJECT_ID`, `RESEND_API_KEY`, `MAIL_FROM`, `GRIEVANCE_INBOX`, `ADMIN_EMAILS` (comma-separated Google accounts allowed into `/admin`), `SITE_URL`
 - Local dev without Firebase: `OTP_DEV_MODE=true` on the dev deployment skips the SMS and accepts code `000000`.
