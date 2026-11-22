@@ -1,0 +1,58 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Admin · Kamana</title><link rel="stylesheet" href="/static/style.css">
+<style>
+[hidden]{display:none!important}
+.admin-wrap{max-width:1000px}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:8px 0 26px}
+.stat{background:#fff;border:1px solid var(--line);border-radius:11px;padding:16px 18px}
+.stat b{display:block;font-size:28px;font-family:Georgia,serif;color:var(--green)}
+.stat span{font-size:12px;color:var(--muted)}
+.admin-tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.admin-tabs button{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:20px;padding:9px 16px;font:600 14px Arial;cursor:pointer;min-height:42px}
+.admin-tabs button[aria-selected="true"]{background:var(--green);border-color:var(--green);color:#fff}
+.admin-filters{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.admin-filters input,.admin-filters select,.admin-card select,.admin-card textarea{border:1px solid var(--line);border-radius:7px;padding:10px 12px;font:15px Arial;background:#fff;color:var(--ink);min-height:44px}
+.admin-filters input{flex:1;min-width:200px}
+.admin-card{align-items:flex-start}
+.admin-card .admin-main{flex:1;min-width:0}
+.admin-card dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.admin-card dt{font-weight:700;color:#52675e}
+.admin-card dd{margin:0;overflow-wrap:anywhere}
+.admin-card .details{white-space:pre-wrap;margin-top:10px!important}
+.review-actions{flex-direction:column;align-items:stretch;min-width:200px}
+.review-actions textarea{min-height:70px;resize:vertical}
+.review-actions label{font-size:12px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.admin-who{font-size:13px;color:var(--muted);display:flex;gap:12px;align-items:center}
+.admin-who button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font:600 13px Arial}
+.admin-error{color:#98574c;font-size:14px}
+@media(max-width:760px){.review-actions{width:100%}}
+</style></head><body>
+<!--header-->
+<main class="admin-wrap">
+  <section data-signin>
+    <section class="page-head"><div class="eyebrow">PRIVATE WORKSPACE</div><h1>Admin <em>sign in.</em></h1><p>Manage profiles and complaints. Only approved Google accounts can sign in.</p></section>
+    <div class="form-card narrow">
+      <button class="button" type="button" data-google>Sign in with Google <span>→</span></button>
+      <p class="admin-error" data-signin-error hidden></p>
+    </div>
+  </section>
+
+  <section data-dashboard hidden>
+    <div class="dashboard-head page-head">
+      <div><div class="eyebrow">PRIVATE WORKSPACE</div><h1>Admin <em>dashboard.</em></h1></div>
+      <div class="admin-who"><span data-who></span><button type="button" data-signout>Sign out</button></div>
+    </div>
+    <div class="stat-row" data-stats></div>
+    <div class="admin-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="profiles" aria-selected="true">Profiles</button>
+      <button type="button" role="tab" data-tab="grievances" aria-selected="false">Complaints</button>
+    </div>
+    <form class="admin-filters" data-filters>
+      <input type="search" name="q" placeholder="Search name, phone, city, job…" autocomplete="off">
+      <select name="status" data-status-profiles><option value="all">All profiles</option><option value="published">Published</option><option value="hidden">Hidden</option></select>
+      <select name="gstatus" data-status-grievances hidden><option value="open">Open</option><option value="all">All complaints</option><option value="received">Received</option><option value="in_review">In review</option><option value="resolved">Resolved</option><option value="rejected">Closed</option></select>
+      <button class="button" type="submit">Search</button>
+    </form>
+    <p class="admin-error" data-error hidden></p>
+    <div class="admin-list" data-list></div>
+  </section>
+</main><!--footer--><script type="module" src="/src/pages/admin.ts"></script></body></html>

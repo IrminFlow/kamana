@@ -21,7 +21,7 @@ export const STATUS_LABELS = {
   rejected: "Closed",
 } as const;
 
-const resend = new Resend(components.resend, { testMode: process.env.RESEND_TEST_MODE === "true" });
+export const resend = new Resend(components.resend, { testMode: process.env.RESEND_TEST_MODE === "true" });
 
 const TICKET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
 function newTicket() {

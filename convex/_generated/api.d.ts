@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as firebase from "../firebase.js";
 import type * as grievances from "../grievances.js";
 import type * as lib from "../lib.js";
@@ -21,6 +22,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   firebase: typeof firebase;
   grievances: typeof grievances;
   lib: typeof lib;
