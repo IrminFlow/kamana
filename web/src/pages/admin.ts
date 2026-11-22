@@ -8,6 +8,7 @@ type Profile = {
   phone: string;
   email?: string;
   state: string;
+  locationMode: "city" | "pincode";
   city?: string;
   pincode?: string;
   trade?: string;
@@ -43,6 +44,12 @@ const qInput = filters.querySelector<HTMLInputElement>('[name="q"]')!;
 const pStatus = $<HTMLSelectElement>("[data-status-profiles]");
 const gStatus = $<HTMLSelectElement>("[data-status-grievances]");
 let tab: "profiles" | "grievances" = "profiles";
+let profileRows: Profile[] = [];
+let grievanceRows: Grievance[] = [];
+let categories: string[] = [];
+type StateRow = { name: string; districts: { name: string }[] };
+let states: StateRow[] = [];
+let trades: Record<string, string[]> = {};
 
 async function convex<T>(kind: "query" | "mutation", path: string, args: Record<string, unknown>): Promise<T> {
   const res = await fetch(`${import.meta.env.VITE_CONVEX_URL}/api/${kind}`, {
@@ -101,6 +108,7 @@ function profileCard(p: Profile) {
     (p.status === "published"
       ? `<button class="reject" data-act="hide">Hide</button>`
       : `<button class="approve" data-act="publish">Publish</button>`) +
+    `<button class="reject" data-act="edit">Edit</button>` +
     `<button class="reject" data-act="delete">Delete</button>` +
     `</div></article>`
   );
@@ -127,9 +135,147 @@ function grievanceCard(g: Grievance) {
     `<select name="status" aria-label="Status">${options}</select>` +
     `<textarea name="note" placeholder="Note shown on the tracking page" aria-label="Resolution note">${escapeHtml(g.resolutionNote)}</textarea>` +
     `<label><input type="checkbox" name="notify" checked> Email the complainant</label>` +
-    `<button class="approve" data-act="save">Save</button></div></article>`
+    `<button class="approve" data-act="save">Save</button>` +
+    `<button class="reject" data-act="edit">Edit all fields</button>` +
+    `<button class="reject" data-act="delete-g">Delete</button></div></article>`
   );
 }
+
+// ----- Create / edit forms -------------------------------------------------------------------
+
+async function loadLookups() {
+  if (!states.length) {
+    const [st, tr] = await Promise.all([
+      fetch("/static/data/india_states_districts.json").then((r) => r.json()).catch(() => []),
+      fetch("/static/data/trades_jobs.json").then((r) => r.json()).catch(() => ({})),
+    ]);
+    states = st as StateRow[];
+    trades = tr as Record<string, string[]>;
+  }
+  if (!categories.length) categories = await convex<string[]>("query", "admin:categories", {});
+}
+
+const opts = (values: string[]) =>
+  [...new Set(values)].filter((x) => x && !/^Other/.test(x)).map((x) => `<option value="${escapeHtml(x)}"></option>`).join("");
+
+function field(label: string, name: string, value = "", attrs = "", wide = false) {
+  return `<label${wide ? ' class="wide"' : ""}>${label}<input name="${name}" value="${escapeHtml(value)}" ${attrs}></label>`;
+}
+function area(label: string, name: string, value = "") {
+  return `<label class="wide">${label}<textarea name="${name}">${escapeHtml(value)}</textarea></label>`;
+}
+function select(label: string, name: string, value: string, choices: [string, string][]) {
+  return (
+    `<label>${label}<select name="${name}">` +
+    choices.map(([v, l]) => `<option value="${escapeHtml(v)}"${v === value ? " selected" : ""}>${escapeHtml(l)}</option>`).join("") +
+    `</select></label>`
+  );
+}
+
+function districtsFor(state: string) {
+  return states.find((s) => s.name.toLowerCase() === state.trim().toLowerCase())?.districts.map((d) => d.name) ?? [];
+}
+
+function profileForm(p?: Profile) {
+  const jobs = p?.trade && trades[p.trade] ? trades[p.trade] : Object.values(trades).flat();
+  return (
+    `<form class="form-card admin-edit" data-form="profile"${p ? ` data-id="${escapeHtml(p._id)}"` : ""}>` +
+    `<h3>${p ? "Edit profile" : "New profile"}</h3><div class="form-grid">` +
+    field("Full name", "name", p?.name, "required maxlength=100") +
+    field("Mobile number", "phone", p?.phone, 'required inputmode="tel" placeholder="10-digit mobile"') +
+    field("Email", "email", p?.email, 'type="email"') +
+    select("Status", "status", p?.status ?? "published", [["published", "Published"], ["hidden", "Hidden"]]) +
+    field("State", "state", p?.state, 'required list="dl-states" autocomplete="off"') +
+    select("Location by", "locationMode", p?.locationMode ?? "city", [["city", "City / district"], ["pincode", "PIN code"]]) +
+    field("City / district", "city", p?.city, 'list="dl-cities" autocomplete="off"') +
+    field("PIN code", "pincode", p?.pincode, 'inputmode="numeric" maxlength=6') +
+    field("Trade", "trade", p?.trade, 'list="dl-trades" autocomplete="off"') +
+    field("Job profile", "jobProfile", p?.jobProfile, 'required list="dl-jobs" autocomplete="off"') +
+    field("Expected salary", "expectedSalary", p?.expectedSalary, "maxlength=80") +
+    area("Specialisation / about", "specialisation", p?.specialisation) +
+    `</div>` +
+    `<datalist id="dl-states">${opts(states.map((s) => s.name))}</datalist>` +
+    `<datalist id="dl-cities">${opts(districtsFor(p?.state ?? ""))}</datalist>` +
+    `<datalist id="dl-trades">${opts(Object.keys(trades))}</datalist>` +
+    `<datalist id="dl-jobs">${opts(jobs)}</datalist>` +
+    `<div class="edit-actions"><button class="button" type="submit">${p ? "Save changes" : "Create profile"}</button>` +
+    `<button class="reject" type="button" data-act="cancel">Cancel</button></div></form>`
+  );
+}
+
+function grievanceForm(g?: Grievance) {
+  const cats = categories.map((c) => [c, c] as [string, string]);
+  return (
+    `<form class="form-card admin-edit" data-form="grievance"${g ? ` data-id="${escapeHtml(g._id)}"` : ""}>` +
+    `<h3>${g ? `Edit complaint ${escapeHtml(g.ticket)}` : "New complaint"}</h3><div class="form-grid">` +
+    field("Name", "name", g?.name, "required maxlength=100") +
+    field("Email", "email", g?.email, 'type="email" required') +
+    field("Phone", "phone", g?.phone) +
+    select("Complaint type", "category", g?.category ?? categories[0] ?? "", cats) +
+    select("Status", "status", g?.status ?? "received", Object.entries(G_LABEL) as [string, string][]) +
+    field("Profile link", "profileUrl", g?.profileUrl, 'type="url" placeholder="https://"') +
+    area("Details", "details", g?.details) +
+    area("Resolution note (shown on the tracking page)", "resolutionNote", g?.resolutionNote) +
+    `</div><div class="edit-actions"><button class="button" type="submit">${g ? "Save changes" : "Create complaint"}</button>` +
+    `<button class="reject" type="button" data-act="cancel">Cancel</button></div></form>`
+  );
+}
+
+async function openForm(kind: "profile" | "grievance", id: string | null, replace?: HTMLElement) {
+  showError(errorBox, "");
+  try {
+    await loadLookups();
+  } catch (err) {
+    showError(errorBox, (err as Error).message);
+    return;
+  }
+  const html =
+    kind === "profile"
+      ? profileForm(id ? profileRows.find((p) => p._id === id) : undefined)
+      : grievanceForm(id ? grievanceRows.find((g) => g._id === id) : undefined);
+  const wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  const form = wrap.firstElementChild as HTMLFormElement;
+  if (replace) replace.replaceWith(form);
+  else list.prepend(form);
+  form.querySelector<HTMLInputElement>("input")?.focus();
+}
+
+list.addEventListener("input", (event) => {
+  const input = event.target as HTMLInputElement;
+  const form = input.closest<HTMLFormElement>('form[data-form="profile"]');
+  if (!form) return;
+  if (input.name === "state") form.querySelector("#dl-cities")!.innerHTML = opts(districtsFor(input.value));
+  if (input.name === "trade") {
+    const jobs = trades[input.value] ?? Object.values(trades).flat();
+    form.querySelector("#dl-jobs")!.innerHTML = opts(jobs);
+  }
+});
+
+list.addEventListener("submit", async (event) => {
+  const form = event.target as HTMLFormElement;
+  if (!form.dataset.form) return;
+  event.preventDefault();
+  const fields: Record<string, string> = {};
+  new FormData(form).forEach((v, k) => (fields[k] = String(v)));
+  const button = form.querySelector<HTMLButtonElement>('button[type="submit"]')!;
+  button.disabled = true;
+  showError(errorBox, "");
+  try {
+    const id = form.dataset.id;
+    await convex("mutation", form.dataset.form === "profile" ? "admin:saveProfile" : "admin:saveGrievance", {
+      ...(id ? { id } : {}),
+      fields,
+    });
+    await refresh();
+  } catch (err) {
+    button.disabled = false;
+    showError(errorBox, (err as Error).message);
+    errorBox.scrollIntoView({ block: "center" });
+  }
+});
+
+$("[data-new]").addEventListener("click", () => openForm(tab === "profiles" ? "profile" : "grievance", null));
 
 async function loadList() {
   showError(errorBox, "");
@@ -137,9 +283,11 @@ async function loadList() {
   try {
     if (tab === "profiles") {
       const rows = await convex<Profile[]>("query", "admin:profiles", { status: pStatus.value, q: qInput.value });
+      profileRows = rows;
       list.innerHTML = rows.length ? rows.map(profileCard).join("") : '<div class="empty"><h3>No profiles</h3></div>';
     } else {
       const rows = await convex<Grievance[]>("query", "admin:grievances", { status: gStatus.value, q: qInput.value });
+      grievanceRows = rows;
       list.innerHTML = rows.length ? rows.map(grievanceCard).join("") : '<div class="empty"><h3>No complaints</h3></div>';
     }
   } catch (err) {
@@ -155,15 +303,20 @@ async function refresh() {
 list.addEventListener("click", async (event) => {
   const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-act]");
   if (!button) return;
+  const act = button.dataset.act;
+  if (act === "cancel") return loadList();
   const card = button.closest<HTMLElement>("[data-id]")!;
   const id = card.dataset.id!;
-  const act = button.dataset.act;
+  if (act === "edit") return openForm(tab === "profiles" ? "profile" : "grievance", id, card);
   try {
     if (act === "hide" || act === "publish") {
       await convex("mutation", "admin:setProfileStatus", { id, status: act === "hide" ? "hidden" : "published" });
     } else if (act === "delete") {
       if (!confirm("Delete this profile permanently?")) return;
       await convex("mutation", "admin:deleteProfile", { id });
+    } else if (act === "delete-g") {
+      if (!confirm("Delete this complaint permanently?")) return;
+      await convex("mutation", "admin:deleteGrievance", { id });
     } else if (act === "save") {
       button.disabled = true;
       await convex("mutation", "admin:updateGrievance", {
@@ -188,6 +341,7 @@ document.querySelectorAll<HTMLButtonElement>("[data-tab]").forEach((b) =>
     gStatus.hidden = tab !== "grievances";
     qInput.placeholder = tab === "profiles" ? "Search name, phone, city, job…" : "Search reference, name, email…";
     qInput.value = "";
+    $("[data-new]").textContent = tab === "profiles" ? "+ New profile" : "+ New complaint";
     loadList();
   }),
 );

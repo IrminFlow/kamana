@@ -24,6 +24,12 @@
 .admin-who{font-size:13px;color:var(--muted);display:flex;gap:12px;align-items:center}
 .admin-who button{border:1px solid var(--line);background:#fff;border-radius:6px;padding:8px 12px;cursor:pointer;font:600 13px Arial}
 .admin-error{color:#98574c;font-size:14px}
+.admin-edit{max-width:none;margin:0}
+.admin-edit h3{margin:0 0 14px;font-size:18px}
+.admin-edit .form-grid select,.admin-edit .form-grid input,.admin-edit .form-grid textarea{width:100%;min-height:44px;border:1px solid var(--line);border-radius:7px;padding:10px 12px;font:15px Arial;background:#fff;color:var(--ink)}
+.admin-edit textarea{min-height:90px}
+.edit-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.edit-actions .reject{min-height:44px;padding:9px 16px;border-radius:8px;font:600 14px Arial;cursor:pointer}
 @media(max-width:760px){.review-actions{width:100%}}
 </style></head><body>
 <!--header-->
@@ -51,6 +57,7 @@
       <select name="status" data-status-profiles><option value="all">All profiles</option><option value="published">Published</option><option value="hidden">Hidden</option></select>
       <select name="gstatus" data-status-grievances hidden><option value="open">Open</option><option value="all">All complaints</option><option value="received">Received</option><option value="in_review">In review</option><option value="resolved">Resolved</option><option value="rejected">Closed</option></select>
       <button class="button" type="submit">Search</button>
+      <button class="button" type="button" data-new>+ New profile</button>
     </form>
     <p class="admin-error" data-error hidden></p>
     <div class="admin-list" data-list></div>

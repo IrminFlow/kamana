@@ -1,8 +1,8 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
-import { clean } from "./lib";
-import { STATUS_LABELS, resend } from "./grievances";
+import { EMAIL_RE, MSG, clean, normalizeIndianMobile } from "./lib";
+import { CATEGORIES, STATUS_LABELS, newTicket, resend } from "./grievances";
 
 /**
  * Admin dashboard (/admin). The browser signs in with Google through Firebase and sends the
@@ -147,5 +147,146 @@ export const updateGrievance = mutation({
           `Kamana Grievance Officer\ninfo@kamana.in\n`,
       });
     }
+  },
+});
+
+// ---------------------------------------------------------------------------------------------
+// Create / edit / delete everything.
+
+const lower = (s: string | undefined) => (s ?? "").toLocaleLowerCase("en-IN");
+const opt = (s: string) => s || undefined;
+
+export const profileFields = v.object({
+  name: v.string(),
+  phone: v.string(),
+  email: v.string(),
+  state: v.string(),
+  locationMode: v.union(v.literal("city"), v.literal("pincode")),
+  city: v.string(),
+  pincode: v.string(),
+  trade: v.string(),
+  jobProfile: v.string(),
+  expectedSalary: v.string(),
+  specialisation: v.string(),
+  status: v.union(v.literal("published"), v.literal("hidden")),
+});
+
+/** Creates a profile (no id) or updates one. Keeps the one-profile-per-phone rule. Returns the id. */
+export const saveProfile = mutation({
+  args: { id: v.optional(v.id("profiles")), fields: profileFields },
+  handler: async (ctx, { id, fields: f }) => {
+    await requireAdmin(ctx);
+    const name = clean(f.name, 100);
+    const phone = normalizeIndianMobile(f.phone);
+    const email = clean(f.email, 254).toLowerCase();
+    const state = clean(f.state, 100);
+    const city = clean(f.city, 100);
+    const pincode = clean(f.pincode, 6);
+    const trade = clean(f.trade, 100);
+    const jobProfile = clean(f.jobProfile, 120);
+    if (!name) throw new ConvexError("Name is required.");
+    if (!phone) throw new ConvexError(MSG.invalidPhone);
+    if (email && !EMAIL_RE.test(email)) throw new ConvexError("Enter a valid email address.");
+    if (!state) throw new ConvexError("State is required.");
+    if (f.locationMode === "city" && !city) throw new ConvexError("City is required.");
+    if (f.locationMode === "pincode" && !/^[1-9]\d{5}$/.test(pincode)) throw new ConvexError("Enter a valid 6-digit PIN code.");
+    if (!jobProfile) throw new ConvexError("Job profile is required.");
+
+    const clash = await ctx.db.query("profiles").withIndex("by_phone", (q) => q.eq("phone", phone)).first();
+    if (clash && clash._id !== id) throw new ConvexError(`Another profile (${clash.name}) already uses ${phone}.`);
+
+    const keepCity = f.locationMode === "city" ? city : "";
+    const doc = {
+      name,
+      phone,
+      email: opt(email),
+      state,
+      locationMode: f.locationMode,
+      city: opt(keepCity),
+      pincode: f.locationMode === "pincode" ? pincode : undefined,
+      trade: opt(trade),
+      jobProfile,
+      expectedSalary: opt(clean(f.expectedSalary, 80)),
+      specialisation: opt(clean(f.specialisation, 1200, true)),
+      status: f.status,
+      search: { state: lower(state), city: lower(keepCity), trade: lower(trade), job: lower(jobProfile) },
+      updatedAt: Date.now(),
+    };
+    if (id) {
+      const existing = await ctx.db.get(id);
+      if (!existing) throw new ConvexError("Profile not found.");
+      await ctx.db.replace(id, { ...doc, createdAt: existing.createdAt });
+      return id;
+    }
+    return await ctx.db.insert("profiles", { ...doc, createdAt: Date.now() });
+  },
+});
+
+export const grievanceFields = v.object({
+  name: v.string(),
+  email: v.string(),
+  phone: v.string(),
+  category: v.string(),
+  profileUrl: v.string(),
+  details: v.string(),
+  status: grievanceStatus,
+  resolutionNote: v.string(),
+});
+
+/** Creates a complaint (no id; a new reference number is issued) or updates every field of one. */
+export const saveGrievance = mutation({
+  args: { id: v.optional(v.id("grievances")), fields: grievanceFields },
+  handler: async (ctx, { id, fields: f }) => {
+    await requireAdmin(ctx);
+    const name = clean(f.name, 100);
+    const email = clean(f.email, 254).toLowerCase();
+    const category = clean(f.category, 60);
+    const details = clean(f.details, 4000, true);
+    const profileUrl = clean(f.profileUrl, 500);
+    const rawPhone = clean(f.phone, 40);
+    if (!name) throw new ConvexError("Name is required.");
+    if (!EMAIL_RE.test(email)) throw new ConvexError("Enter a valid email address.");
+    if (!CATEGORIES.includes(category)) throw new ConvexError("Choose a complaint type.");
+    if (!details) throw new ConvexError("Details are required.");
+    if (profileUrl && !/^https?:\/\//i.test(profileUrl)) throw new ConvexError("Links must start with https://");
+    const doc = {
+      name,
+      email,
+      phone: rawPhone ? (normalizeIndianMobile(rawPhone) ?? rawPhone) : undefined,
+      category,
+      profileUrl: opt(profileUrl),
+      details,
+      status: f.status,
+      resolutionNote: opt(clean(f.resolutionNote, 2000, true)),
+      updatedAt: Date.now(),
+    };
+    if (id) {
+      const g = await ctx.db.get(id);
+      if (!g) throw new ConvexError("Complaint not found.");
+      await ctx.db.replace(id, { ...doc, ticket: g.ticket, createdAt: g.createdAt });
+      return { id, ticket: g.ticket };
+    }
+    let ticket = newTicket();
+    while (await ctx.db.query("grievances").withIndex("by_ticket", (q) => q.eq("ticket", ticket)).first()) {
+      ticket = newTicket();
+    }
+    const newId = await ctx.db.insert("grievances", { ...doc, ticket, createdAt: Date.now() });
+    return { id: newId, ticket };
+  },
+});
+
+export const deleteGrievance = mutation({
+  args: { id: v.id("grievances") },
+  handler: async (ctx, { id }) => {
+    await requireAdmin(ctx);
+    if (await ctx.db.get(id)) await ctx.db.delete(id);
+  },
+});
+
+export const categories = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    return CATEGORIES;
   },
 });

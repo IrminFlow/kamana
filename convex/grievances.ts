@@ -24,7 +24,7 @@ export const STATUS_LABELS = {
 export const resend = new Resend(components.resend, { testMode: process.env.RESEND_TEST_MODE === "true" });
 
 const TICKET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I
-function newTicket() {
+export function newTicket() {
   const bytes = crypto.getRandomValues(new Uint8Array(12));
   return "KAM-" + [...bytes].map((b) => TICKET_ALPHABET[b % TICKET_ALPHABET.length]).join("");
 }
