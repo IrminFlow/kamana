@@ -7,7 +7,8 @@
     "dev:convex": "convex dev",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p convex"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p convex",
+    "test": "vitest run"
   },
   "dependencies": {
     "@convex-dev/rate-limiter": "^0.4.3",
@@ -17,10 +18,13 @@
     "jose": "^6.2.18"
   },
   "devDependencies": {
+    "@edge-runtime/vm": "^5.0.0",
     "@types/node": "^26.6.6",
     "@vitejs/plugin-legacy": "^8.2.4",
+    "convex-test": "^0.0.73",
     "terser": "^5.51.4",
     "typescript": "^7.0.2",
-    "vite": "^8.3.8"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
   }
 }
