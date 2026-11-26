@@ -46,13 +46,18 @@ export function setupOtpForm(
 
   send.addEventListener("click", async () => {
     if (!phone.reportValidity()) return;
+    // Forget any earlier code, and remember the number this code is for even if the field
+    // is edited while we wait.
+    const requestedPhone = phone.value;
+    confirmation = undefined;
+    sentTo = "";
+    verifiedToken = undefined;
     send.disabled = true;
     wait();
-    const result = await postJson("/api/send-otp", { phone: phone.value, purpose });
+    const result = await postJson("/api/send-otp", { phone: requestedPhone, purpose });
     if (result.ok && typeof result.phone === "string") {
       devMode = result.dev === true;
-      sentTo = phone.value;
-      verifiedToken = undefined;
+      sentTo = requestedPhone;
       if (!devMode) {
         try {
           const firebase = await import("./firebase");

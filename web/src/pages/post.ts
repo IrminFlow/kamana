@@ -2,6 +2,9 @@ import "../polyfills";
 import "../options.js";
 import { formFields, postJson } from "../http";
 import { setupOtpForm } from "../otp";
+import { setupProfessionSuggestions } from "../profession-suggest";
+
+setupProfessionSuggestions();
 
 const form = document.querySelector<HTMLFormElement>(".job-application-form")!;
 

@@ -165,3 +165,45 @@ body:has(.job-application-form) main{padding-top:4px}
   .job-application-form .form-submit-row{grid-template-columns:1fr}
   .job-application-form .form-submit-row .button{justify-self:end}
 }
+
+/* Trade / Job Profile box with suggestions (Apply and Find Employees). */
+.profession-field{position:relative;min-width:0}
+.profession-field .search-help{display:block;margin-top:6px}
+.search-help{font-size:13px;font-weight:400;color:var(--muted);line-height:1.35}
+.profession-suggestions{position:absolute;left:0;right:0;margin-top:5px;z-index:6;max-height:min(290px,50vh);overflow-y:auto;overscroll-behavior:contain;padding:5px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px #153e2f20}
+.profession-suggestion{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;min-height:44px;border-radius:6px;color:var(--ink);font-size:15px;cursor:pointer}
+.profession-suggestion>span{min-width:0;overflow-wrap:anywhere}
+.profession-suggestion .aka{display:block;font-size:12px;color:var(--muted)}
+.profession-suggestion>small{flex:none;font-size:11px;font-weight:600;color:#7b8980;text-transform:uppercase;letter-spacing:.4px}
+.profession-suggestion:hover,.profession-suggestion[aria-selected="true"]{background:#edf3ed}
+
+/* Search: the job box and the button share one row on every screen size. */
+.search-profession-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px 14px}
+.search-profession-row .button{grid-column:2;grid-row:1;width:auto;white-space:nowrap}
+.search-profession-row .search-help{grid-column:1/-1;margin:0}
+.results-note{margin:4px 0 0;font-size:14px;color:var(--muted)}
+.profile p.salary{margin:0 0 8px;color:var(--ink);font-weight:600}
+
+/* Apply: the OTP box and Submit share one row; messages and notes run full width below. */
+.job-application-form .otp-submit-row{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:8px 14px}
+.job-application-form .otp-submit-row label{max-width:none}
+.job-application-form .otp-submit-row .button{min-height:54px}
+.job-application-form .otp-message{grid-column:1/-1;padding:0}
+.job-application-form .otp-message:empty{display:none}
+.job-application-form .privacy-note.wide{grid-column:1/-1;margin:0;line-height:1.35}
+
+/* Darker placeholders so empty fields stay readable outdoors. */
+.search-box input::placeholder,.job-application-form input::placeholder,
+.search-box select:has(option:checked[value=""]),.job-application-form select:has(option:checked[value=""]){color:#858d88;opacity:1}
+.search-box select option,.job-application-form select option{color:var(--ink)}
+
+@media(max-width:760px){
+  .search-profession-row .button{grid-column:2;width:auto}
+}
+@media(max-width:600px){
+  .search-profession-row,.job-application-form .otp-submit-row{column-gap:8px}
+  .search-profession-row .button,.job-application-form .otp-submit-row .button{padding-inline:12px;gap:6px;font-size:14px}
+}
+@media(max-width:380px){
+  .search-profession-row .button span,.job-application-form .otp-submit-row .button span{display:none}
+}

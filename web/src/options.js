@@ -1,4 +1,4 @@
-// Original kamana.in dropdown logic (State → City, Trade → Job). OTP handling moved to src/otp.ts.
+// Original kamana.in State → City dropdown logic. Trade / job suggestions live in profession-suggest.ts.
 (() => {
   const cityExtras = {
     "Andaman and Nicobar Islands": ["Port Blair"], "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Nellore", "Kurnool", "Rajahmundry", "Kakinada"],
@@ -37,39 +37,36 @@
     select.replaceChildren(new Option(placeholder, ""));
     values.forEach(value => select.add(new Option(value, value)));
   };
-  const initForms = (states, tradeJobs) => document.querySelectorAll("form").forEach(form => {
-    const stateSelect = form.querySelector("[data-state]"), citySelect = form.querySelector("[data-city]"), tradeSelect = form.querySelector("[data-trade]"), jobSelect = form.querySelector("[data-job]");
-    if (!stateSelect || !citySelect || !tradeSelect || !jobSelect) return;
-    const stateWanted = new URLSearchParams(location.search).get("state") || "";
-    const allJobs = [...new Set(Object.values(tradeJobs || {}).flat().filter(job => job !== "Other / अन्य (type manually / स्वयं लिखें)"))].sort((a, b) => a.localeCompare(b));
-    const cityWanted = new URLSearchParams(location.search).get("city") || "";
-    const tradeWanted = new URLSearchParams(location.search).get("trade") || "";
-    const jobWanted = new URLSearchParams(location.search).get("job") || "";
-    const otherState = Object.keys(states);
-    fill(stateSelect, otherState, "Choose a state / राज्य चुनें");
-    const tradeOptions = Object.keys(tradeJobs || {}).filter(trade => !trade.toLowerCase().startsWith("other")).sort((a, b) => a.localeCompare(b));
-    fill(tradeSelect, tradeOptions, "Choose a trade / व्यवसाय चुनें");
-    tradeSelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER_TRADE__"));
+  const OTHER = "Other / अन्य (type manually / स्वयं लिखें)";
+  const initForms = states => document.querySelectorAll("form").forEach(form => {
+    const stateSelect = form.querySelector("[data-state]"), citySelect = form.querySelector("[data-city]");
+    if (!stateSelect || !citySelect) return;
+    const params = new URLSearchParams(location.search);
+    const stateWanted = params.get("state") || "";
+    const cityWanted = params.get("city") || "";
+    // Each form sets its own prompts: data-placeholder (no state yet) and data-placeholder-ready.
+    const statePrompt = stateSelect.dataset.placeholder || "Choose a state / राज्य चुनें";
+    const cityPrompt = citySelect.dataset.placeholder || "Choose a state first / पहले राज्य चुनें";
+    const cityPromptReady = citySelect.dataset.placeholderReady || "Choose a city / शहर चुनें";
+    fill(stateSelect, Object.keys(states), statePrompt);
     const stateOther = document.createElement("label");
     stateOther.className = "conditional";
     stateOther.innerHTML = 'Enter state / UT<input name="state_other" maxlength="100" placeholder="Type your state">';
     stateSelect.closest("label").insertAdjacentElement("afterend", stateOther);
-    stateSelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER_STATE__"));
+    stateSelect.add(new Option(OTHER, "__OTHER_STATE__"));
     const stateOtherInput = stateOther.querySelector("input");
     const modeInput = form.querySelector("[data-location-mode]");
     const cityOtherWrap = form.querySelector("[data-city-other-wrap]");
     const pinWrap = form.querySelector("[data-pincode-wrap]");
-    const jobOtherWrap = form.querySelector("[data-job-other-wrap]");
-    const tradeOtherWrap = form.querySelector("[data-trade-other-wrap]");
-    const tradeOtherInput = tradeOtherWrap && tradeOtherWrap.querySelector("input");
     const show = (element, yes) => { if (element) element.classList.toggle("show", !!yes); };
     const stateChanged = () => {
       const value = stateSelect.value;
-      if (stateOtherInput) { show(stateOther, value === "__OTHER_STATE__"); stateOtherInput.required = value === "__OTHER_STATE__"; }
+      show(stateOther, value === "__OTHER_STATE__");
+      stateOtherInput.required = value === "__OTHER_STATE__";
       const options = states[value] || [];
-      citySelect.replaceChildren(new Option(options.length ? "Choose a city / शहर चुनें" : "Choose a state first / पहले राज्य चुनें", ""));
+      citySelect.replaceChildren(new Option(options.length ? cityPromptReady : cityPrompt, ""));
       options.forEach(city => citySelect.add(new Option(city, city)));
-      if (value) { citySelect.add(new Option("Search by PIN code / पिन कोड से खोजें", "__PIN__")); citySelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER__")); }
+      if (value) { citySelect.add(new Option("Search by PIN code / पिन कोड से खोजें", "__PIN__")); citySelect.add(new Option(OTHER, "__OTHER__")); }
       citySelect.value = cityWanted && options.includes(cityWanted) ? cityWanted : "";
       if ((cityWanted === "__OTHER__" || cityWanted === "__PIN__") && value) citySelect.value = cityWanted;
       locationChanged();
@@ -84,58 +81,21 @@
       if (cityOtherInput) cityOtherInput.required = isOther;
       if (pinInput) pinInput.required = isPin;
     };
-    const jobChanged = () => {
-      const isOther = jobSelect.value === "Other / अन्य (type manually / स्वयं लिखें)" || jobSelect.value === "__OTHER__";
-      if (isOther) jobSelect.value = "__OTHER__";
-      show(jobOtherWrap, isOther);
-      const input = jobOtherWrap && jobOtherWrap.querySelector("input");
-      if (input) input.required = isOther;
-    };
-    const tradeChanged = () => {
-      const isOther = tradeSelect.value === "__OTHER_TRADE__";
-      show(tradeOtherWrap, isOther);
-      if (tradeOtherInput) tradeOtherInput.required = isOther;
-      fill(jobSelect, allJobs, "Choose a job profile / कार्य-प्रोफ़ाइल चुनें (optional / वैकल्पिक)");
-      jobSelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER__"));
-      if (jobWanted && allJobs.includes(jobWanted)) jobSelect.value = jobWanted;
-      else if (jobWanted === "__OTHER__") jobSelect.value = "__OTHER__";
-      jobChanged();
-    };
     stateSelect.addEventListener("change", stateChanged);
     citySelect.addEventListener("change", locationChanged);
-    tradeSelect.addEventListener("change", tradeChanged);
-    jobSelect.addEventListener("change", jobChanged);
-    if (form.classList.contains("search-box")) form.addEventListener("submit", event => {
-      tradeSelect.setCustomValidity("");
-      if (!tradeSelect.value && !jobSelect.value) {
-        event.preventDefault();
-        tradeSelect.setCustomValidity("Choose a trade or job profile to search.");
-        tradeSelect.reportValidity();
-      }
-    });
-    tradeSelect.addEventListener("change", () => tradeSelect.setCustomValidity(""));
-    jobSelect.addEventListener("change", () => tradeSelect.setCustomValidity(""));
     if (stateWanted) stateSelect.value = stateWanted;
     stateChanged();
-    if (tradeWanted) tradeSelect.value = tradeWanted === "__OTHER_TRADE__" ? "__OTHER_TRADE__" : tradeWanted;
-    tradeChanged();
-    const cityOtherValue = new URLSearchParams(location.search).get("city_other");
-    const pinValue = new URLSearchParams(location.search).get("pincode");
-    const stateOtherValue = new URLSearchParams(location.search).get("state_other");
-    const jobOtherValue = new URLSearchParams(location.search).get("job_other");
-    const tradeOtherValue = new URLSearchParams(location.search).get("trade_other");
+    const cityOtherValue = params.get("city_other");
+    const pinValue = params.get("pincode");
+    const stateOtherValue = params.get("state_other");
     if (cityOtherValue && cityOtherWrap) cityOtherWrap.querySelector("input").value = cityOtherValue;
     if (pinValue && pinWrap) pinWrap.querySelector("input").value = pinValue;
     if (stateOtherValue) stateOtherInput.value = stateOtherValue;
-    if (jobOtherValue && jobOtherWrap) jobOtherWrap.querySelector("input").value = jobOtherValue;
-    if (tradeOtherValue && tradeOtherInput) tradeOtherInput.value = tradeOtherValue;
     locationChanged();
   });
-  Promise.all([
-    fetch("/static/data/india_states_districts.json").then(response => { if (!response.ok) throw new Error("Location data unavailable"); return response.json(); }),
-    fetch("/static/data/trades_jobs.json").then(response => { if (!response.ok) throw new Error("Trade data unavailable"); return response.json(); })
-  ])
-    .then(([data, tradeJobs]) => {
+  fetch("/static/data/india_states_districts.json")
+    .then(response => { if (!response.ok) throw new Error("Location data unavailable"); return response.json(); })
+    .then(data => {
       const districts = Object.fromEntries(data.map(entry => [entry.name, entry.districts.map(district => district.name)]));
       const locations = {};
       Object.keys(cityExtras).forEach(state => {
@@ -144,7 +104,7 @@
         const currentDistricts = districtOverrides[state] || districtsForState;
         locations[state] = [...new Set([...currentDistricts, ...cityExtras[state]])].sort((a, b) => a.localeCompare(b));
       });
-      initForms(locations, tradeJobs);
+      initForms(locations);
     })
-    .catch(() => { initForms(cityExtras, {}); });
+    .catch(() => { initForms(cityExtras); });
 })();

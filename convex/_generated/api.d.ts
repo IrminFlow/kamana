@@ -9,10 +9,12 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as crons from "../crons.js";
 import type * as firebase from "../firebase.js";
 import type * as grievances from "../grievances.js";
 import type * as lib from "../lib.js";
 import type * as otp from "../otp.js";
+import type * as profileReports from "../profileReports.js";
 import type * as profiles from "../profiles.js";
 
 import type {
@@ -23,10 +25,12 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  crons: typeof crons;
   firebase: typeof firebase;
   grievances: typeof grievances;
   lib: typeof lib;
   otp: typeof otp;
+  profileReports: typeof profileReports;
   profiles: typeof profiles;
 }>;
 

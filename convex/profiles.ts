@@ -4,6 +4,7 @@ import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { EMAIL_RE, MSG, assertServer, clean, fail, normalizeIndianMobile } from "./lib";
 import { verifyPhone } from "./otp";
+import { canonicalProfession, matchesProfession } from "../lib/professions";
 
 const OTHER_STATE = "__OTHER_STATE__";
 const OTHER_CITY = "__OTHER__";
@@ -24,9 +25,12 @@ export const applicationFields = v.object({
   pincode: v.optional(v.string()),
   trade: v.optional(v.string()),
   trade_other: v.optional(v.string()),
-  job_profile: v.string(),
+  profession: v.optional(v.string()), // the combined "Trade / Job Profile" box
+  job_profile: v.string(), // older form: job dropdown
   job_other: v.optional(v.string()),
-  experience: v.optional(v.string()), // labelled "Expected Salary" on the form
+  work_experience: v.optional(v.string()),
+  expected_salary: v.optional(v.string()),
+  experience: v.optional(v.string()), // older form: this name held the expected salary
   description: v.optional(v.string()),
   email: v.optional(v.string()),
   phone: v.string(),
@@ -37,7 +41,7 @@ type ProfileInput = Omit<Doc<"profiles">, "_id" | "_creationTime" | "createdAt" 
 const lower = (s: string | undefined) => (s ?? "").toLocaleLowerCase("en-IN");
 
 /** Turns form fields into a clean profile, or returns a user-facing error. */
-function parseApplication(f: typeof applicationFields.type): { ok: true; profile: ProfileInput } | { ok: false; message: string } {
+export function parseApplication(f: typeof applicationFields.type): { ok: true; profile: ProfileInput } | { ok: false; message: string } {
   const name = clean(f.name, 100);
   if (!name) return fail("Please enter your name.");
 
@@ -57,8 +61,9 @@ function parseApplication(f: typeof applicationFields.type): { ok: true; profile
   }
 
   const trade = (f.trade === OTHER_TRADE ? clean(f.trade_other, 100) : clean(f.trade, 100)) || undefined;
-  const jobProfile = f.job_profile === OTHER_JOB ? clean(f.job_other, 120) : clean(f.job_profile, 120);
-  if (!jobProfile) return fail("Please choose your job profile.");
+  const typedJob = clean(f.profession, 120) || (f.job_profile === OTHER_JOB ? clean(f.job_other, 120) : clean(f.job_profile, 120));
+  const jobProfile = clean(canonicalProfession(typedJob), 120);
+  if (!jobProfile) return fail("Please enter your trade or job profile.");
 
   const email = clean(f.email, 254).toLowerCase() || undefined;
   if (email && !EMAIL_RE.test(email)) return fail("Please enter a valid email address.");
@@ -78,7 +83,8 @@ function parseApplication(f: typeof applicationFields.type): { ok: true; profile
       pincode,
       trade,
       jobProfile,
-      expectedSalary: clean(f.experience, 80) || undefined,
+      experience: clean(f.work_experience, 80) || undefined,
+      expectedSalary: clean(f.expected_salary ?? f.experience, 80) || undefined,
       specialisation: clean(f.description, 1200, true) || undefined,
       search: { state: lower(state), city: lower(city), trade: lower(trade), job: lower(jobProfile) },
     },
@@ -123,23 +129,33 @@ export const existsByPhone = internalQuery({
     (await ctx.db.query("profiles").withIndex("by_phone", (q) => q.eq("phone", phone)).first()) !== null,
 });
 
-/** One profile per phone: a new submission replaces the old one. Returns true if it replaced. */
+/**
+ * One profile per phone: a new submission replaces the old details. The profile keeps its id,
+ * its creation date and its visibility (a profile hidden by an admin stays hidden).
+ * The form no longer asks for a specialisation, so an existing one is kept.
+ * Returns true if a profile was replaced.
+ */
 export const upsert = internalMutation({
   args: { profile: v.any() },
   handler: async (ctx, { profile }: { profile: ProfileInput }) => {
     const now = Date.now();
-    const existing = await ctx.db
+    const [current, ...duplicates] = await ctx.db
       .query("profiles")
       .withIndex("by_phone", (q) => q.eq("phone", profile.phone))
       .collect();
-    for (const old of existing) await ctx.db.delete(old._id);
-    await ctx.db.insert("profiles", {
+    for (const old of duplicates) await ctx.db.delete(old._id);
+    if (!current) {
+      await ctx.db.insert("profiles", { ...profile, status: "published", createdAt: now, updatedAt: now });
+      return false;
+    }
+    await ctx.db.replace(current._id, {
       ...profile,
-      status: "published",
-      createdAt: existing[0]?.createdAt ?? now,
+      specialisation: profile.specialisation ?? current.specialisation,
+      status: current.status,
+      createdAt: current.createdAt,
       updatedAt: now,
     });
-    return existing.length > 0;
+    return true;
   },
 });
 
@@ -158,8 +174,10 @@ export const search = query({
     state: v.string(),
     city: v.optional(v.string()),
     pincode: v.optional(v.string()),
-    trade: v.optional(v.string()),
-    job: v.optional(v.string()),
+    trade: v.optional(v.string()), // older links: exact trade
+    job: v.optional(v.string()), // older links: exact job
+    profession: v.optional(v.string()), // the "Trade / Job Profile" box
+    related: v.optional(v.boolean()), // also return related jobs (used when nothing matches directly)
   },
   handler: async (ctx, args) => {
     const state = lower(clean(args.state, 100));
@@ -168,6 +186,8 @@ export const search = query({
     const pincode = clean(args.pincode, 6);
     const trade = lower(clean(args.trade, 100));
     const job = lower(clean(args.job, 120));
+    const profession = clean(args.profession, 120);
+    const related = args.related === true;
 
     let q;
     if (pincode) {
@@ -186,6 +206,7 @@ export const search = query({
       if (p.status !== "published") continue;
       if (trade && p.search.trade !== trade) continue;
       if (job && p.search.job !== job) continue;
+      if (profession && !matchesProfession(p, profession, related)) continue;
       results.push({
         id: p._id,
         name: p.name,
@@ -194,6 +215,7 @@ export const search = query({
         pincode: p.pincode,
         trade: p.trade,
         jobProfile: p.jobProfile,
+        experience: p.experience,
         expectedSalary: p.expectedSalary,
         specialisation: p.specialisation,
         email: p.email,

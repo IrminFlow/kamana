@@ -13,6 +13,7 @@ export default defineSchema({
     pincode: v.optional(v.string()),
     trade: v.optional(v.string()),
     jobProfile: v.string(),
+    experience: v.optional(v.string()), // work experience, e.g. "2 years"
     expectedSalary: v.optional(v.string()),
     specialisation: v.optional(v.string()),
     status: v.union(v.literal("published"), v.literal("hidden")),
@@ -27,6 +28,7 @@ export default defineSchema({
     }),
   })
     .index("by_phone", ["phone"])
+    .index("by_created_at", ["createdAt"])
     .index("by_state_city", ["search.state", "search.city"])
     .index("by_state_pincode", ["search.state", "pincode"]),
 
