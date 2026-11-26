@@ -32,6 +32,25 @@ describe("admin access", () => {
 });
 
 describe("profiles", () => {
+  test("combined search finds old titles and keeps related results in the selected location", async () => {
+    const t = convexTest(schema, modules);
+    const a = t.withIdentity(ADMIN);
+    await a.mutation(api.admin.saveProfile, { fields: {
+      ...profile, jobProfile: "Bank Security Guard", experience: "2 years",
+    } });
+    await a.mutation(api.admin.saveProfile, { fields: {
+      ...profile, phone: "9000000002", jobProfile: "Tailor",
+    } });
+    const filters = { state: "Delhi", city: "New Delhi" };
+    const guards = await t.query(api.profiles.search, { ...filters, profession: "चौकीदार" });
+    expect(guards).toHaveLength(1);
+    expect(guards[0]).toMatchObject({ experience: "2 years", expectedSalary: "15000" });
+    expect(await t.query(api.profiles.search, { ...filters, profession: "stitching" })).toEqual([]);
+    const related = await t.query(api.profiles.search, { ...filters, profession: "stitching", related: true });
+    expect(related.map(p => p.jobProfile)).toEqual(["Tailor"]);
+    expect(await t.query(api.profiles.search, { ...filters, city: "Other City", profession: "stitching", related: true })).toEqual([]);
+  });
+
   test("create, edit, duplicate phone, search, delete", async () => {
     const a = convexTest(schema, modules).withIdentity(ADMIN);
     const id = await a.mutation(api.admin.saveProfile, { fields: profile });

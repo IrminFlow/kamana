@@ -16,7 +16,7 @@ export async function postJson(path: string, body: Record<string, string>): Prom
 }
 
 /** Calls a public Convex query over its HTTP API (no client library needed). */
-export async function convexQuery<T>(path: string, args: Record<string, string>): Promise<T> {
+export async function convexQuery<T>(path: string, args: Record<string, string | boolean>): Promise<T> {
   const res = await fetch(`${import.meta.env.VITE_CONVEX_URL}/api/query`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -10,6 +10,7 @@ type Profile = {
   pincode?: string;
   trade?: string;
   jobProfile: string;
+  experience?: string;
   expectedSalary?: string;
   specialisation?: string;
   email?: string;
@@ -26,17 +27,20 @@ const byPin = get("location_mode") === "pincode" || get("city") === "__PIN__";
 const pincode = byPin ? get("pincode") : "";
 const city = byPin ? "" : get("city") === "__OTHER__" ? get("city_other") : get("city");
 const trade = get("trade") === "__OTHER_TRADE__" ? get("trade_other") : get("trade");
+const profession = get("q");
 const job = get("job") === "__OTHER__" ? get("job_other") : get("job");
 
 function card(r: Profile) {
-  const role = [r.trade, r.jobProfile].filter(Boolean).join(" · ");
+  const role = r.trade && r.trade.toLowerCase() !== r.jobProfile.toLowerCase()
+    ? `${r.trade} · ${r.jobProfile}` : r.jobProfile;
   const where = r.city ? `${r.city}, ${r.state}` : `PIN ${r.pincode}, ${r.state}`;
   const digits = r.phone.replace(/\D/g, "");
   return (
     `<article class="profile"><div class="profile-top"><span class="initial">${escapeHtml(r.name.charAt(0).toUpperCase())}</span>` +
-    (r.expectedSalary ? `<span class="tag">${escapeHtml(r.expectedSalary)}</span>` : "") +
+    (r.experience ? `<span class="tag">${escapeHtml(r.experience)}</span>` : "") +
     `</div><h3>${escapeHtml(r.name)}</h3><div class="role">${escapeHtml(role)}</div>` +
     `<div class="location">⌖ ${escapeHtml(where)}</div>` +
+    (r.expectedSalary ? `<p>Expected salary: ${escapeHtml(r.expectedSalary)}</p>` : "") +
     (r.specialisation ? `<p>${escapeHtml(r.specialisation)}</p>` : "") +
     `<div class="contact">` +
     (r.email ? `<a href="mailto:${escapeHtml(r.email)}">Email: ${escapeHtml(r.email)}</a>` : "") +
@@ -48,15 +52,22 @@ function card(r: Profile) {
 
 async function render() {
   if (!state) return;
-  const pill = [state, trade, job, city || (pincode && `PIN ${pincode}`)].filter(Boolean).join(" · ");
+  const pill = [state, profession || trade, job, city || (pincode && `PIN ${pincode}`)].filter(Boolean).join(" · ");
+  let related = false;
   const head = (count: number) =>
     `<section class="results-head"><div><div class="eyebrow">MATCHING PROFILES</div>` +
-    `<h2>${count} professional${count === 1 ? "" : "s"} found</h2></div>` +
+    (related ? `<h2>Closest matches for “${escapeHtml(profession)}”</h2></div>`
+      : `<h2>${count} professional${count === 1 ? "" : "s"} found</h2></div>`) +
     `<span class="filter-pill">${escapeHtml(pill)}</span></section>`;
 
   let results: Profile[];
   try {
-    results = await convexQuery<Profile[]>("profiles:search", { state, city, pincode, trade, job });
+    const filters = { state, city, pincode, trade, job, profession };
+    results = await convexQuery<Profile[]>("profiles:search", filters);
+    if (profession && results.length === 0) {
+      results = await convexQuery<Profile[]>("profiles:search", { ...filters, related: true });
+      related = results.length > 0;
+    }
   } catch {
     main.insertAdjacentHTML(
       "beforeend",

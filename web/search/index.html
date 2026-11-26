@@ -2,14 +2,12 @@
 <!--header-->
 <main>
       <form class="search-box" method="get" action="/search">
-        <label>State<select data-state name="state" required><option value="">Choose a state</option></select></label>
-        <label>City<select data-city name="city"><option value="">Choose a state first</option></select></label>
-        <input type="hidden" name="location_mode" data-location-mode value="city">
-        <label>Trade (optional)<select data-trade name="trade"><option value="">Choose a trade (optional)</option></select></label>
-        <label class="conditional" data-trade-other-wrap>Enter trade<input name="trade_other" value="" maxlength="100" placeholder="Type a trade"></label>
+        <label>State<select data-state name="state" required><option value=""></option></select></label>
+        <label>City / शहर (optional / वैकल्पिक)<select data-city name="city"><option value="">जहाँ काम करना चाहते हो</option></select></label>
+        <input type="hidden" name="location_mode" data-location-mode value="">
         <label class="conditional" data-city-other-wrap>Enter city<input name="city_other" value="" placeholder="Type a city"></label>
         <label class="conditional" data-pincode-wrap>PIN code<input name="pincode" value="" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit PIN code"></label>
-        <label>Job (optional)<select data-job name="job"><option value="">Choose a job profile (optional)</option></select></label>
-        <label class="conditional" data-job-other-wrap>Enter job profile<input name="job_other" value="" placeholder="Type a job"></label>
-        <button class="button" type="submit">Search employees <span>⌕</span></button></form>
+        <div class="search-profession-row"><label class="profession-search">Trade / Job Profile<input data-profession-search name="q" aria-describedby="search-help" value="" type="text" autocomplete="off" aria-autocomplete="list" aria-controls="profession-suggestions" aria-expanded="false" placeholder="नौकरी या पेशा"></label><p class="search-help" id="search-help">Choose a suggestion or type any job name; we’ll show close matches. Leave blank to search the whole state. / सुझाव चुनें या काम का नाम लिखें; मिलते-जुलते प्रोफ़ाइल दिखेंगे।</p><div class="profession-suggestions" id="profession-suggestions" role="listbox" hidden></div>
+          <button class="button" type="submit">Search employees <span>⌕</span></button>
+        </div></form>
       </main><!--footer--><script type="module" src="/src/pages/search.ts"></script></body></html>
