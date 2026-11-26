@@ -1,4 +1,5 @@
-// Original kamana.in dropdown logic (State → City, Trade → Job). OTP handling moved to src/otp.ts.
+import { canonicalProfession, normalizeProfession as normalize, isStitchingQuery, stitchingJobs } from "../../lib/professions";
+
 (() => {
   const cityExtras = {
     "Andaman and Nicobar Islands": ["Port Blair"], "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Tirupati", "Nellore", "Kurnool", "Rajahmundry", "Kakinada"],
@@ -39,17 +40,19 @@
   };
   const initForms = (states, tradeJobs) => document.querySelectorAll("form").forEach(form => {
     const stateSelect = form.querySelector("[data-state]"), citySelect = form.querySelector("[data-city]"), tradeSelect = form.querySelector("[data-trade]"), jobSelect = form.querySelector("[data-job]");
-    if (!stateSelect || !citySelect || !tradeSelect || !jobSelect) return;
+    if (!stateSelect || !citySelect) return;
     const stateWanted = new URLSearchParams(location.search).get("state") || "";
     const allJobs = [...new Set(Object.values(tradeJobs || {}).flat().filter(job => job !== "Other / अन्य (type manually / स्वयं लिखें)"))].sort((a, b) => a.localeCompare(b));
     const cityWanted = new URLSearchParams(location.search).get("city") || "";
     const tradeWanted = new URLSearchParams(location.search).get("trade") || "";
     const jobWanted = new URLSearchParams(location.search).get("job") || "";
     const otherState = Object.keys(states);
-    fill(stateSelect, otherState, "Choose a state / राज्य चुनें");
+    fill(stateSelect, otherState, "");
     const tradeOptions = Object.keys(tradeJobs || {}).filter(trade => !trade.toLowerCase().startsWith("other")).sort((a, b) => a.localeCompare(b));
-    fill(tradeSelect, tradeOptions, "Choose a trade / व्यवसाय चुनें");
-    tradeSelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER_TRADE__"));
+    if (tradeSelect) {
+      fill(tradeSelect, tradeOptions, "Choose a trade / व्यवसाय चुनें");
+      tradeSelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER_TRADE__"));
+    }
     const stateOther = document.createElement("label");
     stateOther.className = "conditional";
     stateOther.innerHTML = 'Enter state / UT<input name="state_other" maxlength="100" placeholder="Type your state">';
@@ -67,7 +70,7 @@
       const value = stateSelect.value;
       if (stateOtherInput) { show(stateOther, value === "__OTHER_STATE__"); stateOtherInput.required = value === "__OTHER_STATE__"; }
       const options = states[value] || [];
-      citySelect.replaceChildren(new Option(options.length ? "Choose a city / शहर चुनें" : "Choose a state first / पहले राज्य चुनें", ""));
+      citySelect.replaceChildren(new Option(options.length ? "Choose a city / शहर चुनें" : "जहाँ काम करना चाहते हो", ""));
       options.forEach(city => citySelect.add(new Option(city, city)));
       if (value) { citySelect.add(new Option("Search by PIN code / पिन कोड से खोजें", "__PIN__")); citySelect.add(new Option("Other / अन्य (type manually / स्वयं लिखें)", "__OTHER__")); }
       citySelect.value = cityWanted && options.includes(cityWanted) ? cityWanted : "";
@@ -85,6 +88,7 @@
       if (pinInput) pinInput.required = isPin;
     };
     const jobChanged = () => {
+      if (!jobSelect) return;
       const isOther = jobSelect.value === "Other / अन्य (type manually / स्वयं लिखें)" || jobSelect.value === "__OTHER__";
       if (isOther) jobSelect.value = "__OTHER__";
       show(jobOtherWrap, isOther);
@@ -92,6 +96,7 @@
       if (input) input.required = isOther;
     };
     const tradeChanged = () => {
+      if (!tradeSelect || !jobSelect) return;
       const isOther = tradeSelect.value === "__OTHER_TRADE__";
       show(tradeOtherWrap, isOther);
       if (tradeOtherInput) tradeOtherInput.required = isOther;
@@ -103,9 +108,9 @@
     };
     stateSelect.addEventListener("change", stateChanged);
     citySelect.addEventListener("change", locationChanged);
-    tradeSelect.addEventListener("change", tradeChanged);
-    jobSelect.addEventListener("change", jobChanged);
-    if (form.classList.contains("search-box")) form.addEventListener("submit", event => {
+    if (tradeSelect) tradeSelect.addEventListener("change", tradeChanged);
+    if (jobSelect) jobSelect.addEventListener("change", jobChanged);
+    if (form.classList.contains("search-box") && tradeSelect && jobSelect) form.addEventListener("submit", event => {
       tradeSelect.setCustomValidity("");
       if (!tradeSelect.value && !jobSelect.value) {
         event.preventDefault();
@@ -113,12 +118,14 @@
         tradeSelect.reportValidity();
       }
     });
-    tradeSelect.addEventListener("change", () => tradeSelect.setCustomValidity(""));
-    jobSelect.addEventListener("change", () => tradeSelect.setCustomValidity(""));
+    if (tradeSelect) tradeSelect.addEventListener("change", () => tradeSelect.setCustomValidity(""));
+    if (jobSelect) jobSelect.addEventListener("change", () => jobSelect.setCustomValidity(""));
     if (stateWanted) stateSelect.value = stateWanted;
     stateChanged();
-    if (tradeWanted) tradeSelect.value = tradeWanted === "__OTHER_TRADE__" ? "__OTHER_TRADE__" : tradeWanted;
-    tradeChanged();
+    if (tradeSelect && jobSelect) {
+      if (tradeWanted) tradeSelect.value = tradeWanted === "__OTHER_TRADE__" ? "__OTHER_TRADE__" : tradeWanted;
+      tradeChanged();
+    }
     const cityOtherValue = new URLSearchParams(location.search).get("city_other");
     const pinValue = new URLSearchParams(location.search).get("pincode");
     const stateOtherValue = new URLSearchParams(location.search).get("state_other");
@@ -131,6 +138,78 @@
     if (tradeOtherValue && tradeOtherInput) tradeOtherInput.value = tradeOtherValue;
     locationChanged();
   });
+  const initSearchAutocomplete = tradeJobs => {
+    // Keep one user-facing label for common synonyms. Match searches against
+    // the aliases too, so a familiar alternate name still finds the canonical option.
+    const excludedEducationTitles = new Set([
+      "information technology",
+      "multimedia, animation & special effects"
+    ]);
+    const jobMap = new Map();
+    Object.entries(tradeJobs || {}).forEach(([trade, titles]) => {
+      (titles || []).forEach(title => {
+        if (title.toLowerCase().startsWith("other")) return;
+        // The Engineering group contains course/degree names rather than job titles.
+        if (trade === "Engineering") return;
+        if (excludedEducationTitles.has(normalize(title))) return;
+        const canonical = canonicalProfession(title);
+        const key = normalize(canonical);
+        const existing = jobMap.get(key) || {value: canonical, type: "Job Profile", aliases: []};
+        if (normalize(title) !== key && !existing.aliases.includes(title)) existing.aliases.push(title);
+        jobMap.set(key, existing);
+      });
+    });
+    const jobs = [...jobMap.values()];
+    if (!jobMap.has("sampling master (tailor)")) jobs.push({value:"Sampling Master (Tailor)", type:"Job Profile", aliases:[]});
+    const trades = Object.keys(tradeJobs || {}).filter(trade => !trade.toLowerCase().startsWith("other"));
+    const catalog = [...jobs, ...trades.map(value => ({value, type:"Trade", aliases:[]}))];
+    document.querySelectorAll("form [data-profession-search]").forEach(input => {
+      const form = input.closest("form"), list = document.getElementById(input.getAttribute("aria-controls"));
+      if (!form || !list) return;
+      let shown = [], active = -1;
+      const close = () => { list.hidden = true; list.replaceChildren(); input.setAttribute("aria-expanded", "false"); shown = []; active = -1; };
+      const choose = item => { input.value = item.value; close(); input.focus(); };
+      const setActive = index => {
+        active = index;
+        [...list.querySelectorAll("[role=option]")].forEach((option, i) => {
+          option.setAttribute("aria-selected", i === active ? "true" : "false");
+          if (i === active) option.scrollIntoView({block:"nearest"});
+        });
+      };
+      const render = () => {
+        const query = normalize(input.value);
+        if (!query) return close();
+        const direct = catalog.filter(item => normalize(item.value).includes(query) || item.aliases.some(alias => normalize(alias).includes(query)));
+        const related = isStitchingQuery(query) ? stitchingJobs.map(value => ({value, type:"Related job"})) : [];
+        shown = [...new Map([...direct, ...related].map(item => [item.value.toLocaleLowerCase(), item])).values()].slice(0, 8);
+        list.replaceChildren();
+        if (!shown.length) return close();
+        shown.forEach((item, index) => {
+          const option = document.createElement("button");
+          option.type = "button"; option.className = "profession-suggestion"; option.setAttribute("role", "option"); option.setAttribute("aria-selected", "false");
+          const name = document.createElement("span"); name.textContent = item.value;
+          const kind = document.createElement("small"); kind.textContent = item.type;
+          option.append(name, kind);
+          option.addEventListener("mousedown", event => event.preventDefault());
+          option.addEventListener("click", () => choose(item));
+          list.append(option);
+          if (index === 0) setActive(-1);
+        });
+        list.hidden = false; input.setAttribute("aria-expanded", "true");
+      };
+      if (form.classList.contains("search-box")) input.value = new URLSearchParams(location.search).get("q") || input.value;
+      input.addEventListener("input", render);
+      input.addEventListener("keydown", event => {
+        if (list.hidden) return;
+        if (event.key === "ArrowDown") { event.preventDefault(); setActive(Math.min(active + 1, shown.length - 1)); }
+        else if (event.key === "ArrowUp") { event.preventDefault(); setActive(Math.max(active - 1, 0)); }
+        else if (event.key === "Enter" && active >= 0) { event.preventDefault(); choose(shown[active]); }
+        else if (event.key === "Escape") close();
+      });
+      form.addEventListener("submit", close);
+      document.addEventListener("click", event => { if (!form.contains(event.target)) close(); });
+    });
+  };
   Promise.all([
     fetch("/static/data/india_states_districts.json").then(response => { if (!response.ok) throw new Error("Location data unavailable"); return response.json(); }),
     fetch("/static/data/trades_jobs.json").then(response => { if (!response.ok) throw new Error("Trade data unavailable"); return response.json(); })
@@ -145,6 +224,8 @@
         locations[state] = [...new Set([...currentDistricts, ...cityExtras[state]])].sort((a, b) => a.localeCompare(b));
       });
       initForms(locations, tradeJobs);
+      initSearchAutocomplete(tradeJobs);
+
     })
-    .catch(() => { initForms(cityExtras, {}); });
+    .catch(() => { initForms(cityExtras, {}); initSearchAutocomplete({}); });
 })();

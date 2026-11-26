@@ -3,6 +3,7 @@ import { action, internalMutation, internalQuery, query } from "./_generated/ser
 import { internal } from "./_generated/api";
 import type { Doc } from "./_generated/dataModel";
 import { EMAIL_RE, MSG, assertServer, clean, fail, normalizeIndianMobile } from "./lib";
+import { canonicalProfession, normalizeProfession, isStitchingQuery, stitchingJobs } from "../lib/professions";
 import { verifyPhone } from "./otp";
 
 const OTHER_STATE = "__OTHER_STATE__";
@@ -24,9 +25,12 @@ export const applicationFields = v.object({
   pincode: v.optional(v.string()),
   trade: v.optional(v.string()),
   trade_other: v.optional(v.string()),
+  profession: v.optional(v.string()),
   job_profile: v.string(),
   job_other: v.optional(v.string()),
-  experience: v.optional(v.string()), // labelled "Expected Salary" on the form
+  experience: v.optional(v.string()), // Legacy salary field.
+  work_experience: v.optional(v.string()),
+  expected_salary: v.optional(v.string()),
   description: v.optional(v.string()),
   email: v.optional(v.string()),
   phone: v.string(),
@@ -57,7 +61,8 @@ function parseApplication(f: typeof applicationFields.type): { ok: true; profile
   }
 
   const trade = (f.trade === OTHER_TRADE ? clean(f.trade_other, 100) : clean(f.trade, 100)) || undefined;
-  const jobProfile = f.job_profile === OTHER_JOB ? clean(f.job_other, 120) : clean(f.job_profile, 120);
+  const jobProfile = canonicalProfession(clean(f.profession, 120) ||
+    (f.job_profile === OTHER_JOB ? clean(f.job_other, 120) : clean(f.job_profile, 120)));
   if (!jobProfile) return fail("Please choose your job profile.");
 
   const email = clean(f.email, 254).toLowerCase() || undefined;
@@ -78,7 +83,8 @@ function parseApplication(f: typeof applicationFields.type): { ok: true; profile
       pincode,
       trade,
       jobProfile,
-      expectedSalary: clean(f.experience, 80) || undefined,
+      experience: clean(f.work_experience, 80) || undefined,
+      expectedSalary: clean(f.expected_salary ?? f.experience, 80) || undefined,
       specialisation: clean(f.description, 1200, true) || undefined,
       search: { state: lower(state), city: lower(city), trade: lower(trade), job: lower(jobProfile) },
     },
@@ -132,14 +138,17 @@ export const upsert = internalMutation({
       .query("profiles")
       .withIndex("by_phone", (q) => q.eq("phone", profile.phone))
       .collect();
-    for (const old of existing) await ctx.db.delete(old._id);
-    await ctx.db.insert("profiles", {
+    const [current, ...duplicates] = existing;
+    for (const old of duplicates) await ctx.db.delete(old._id);
+    const fields = {
       ...profile,
-      status: "published",
-      createdAt: existing[0]?.createdAt ?? now,
+      status: current?.status ?? "published" as const,
+      createdAt: current?.createdAt ?? now,
       updatedAt: now,
-    });
-    return existing.length > 0;
+    };
+    if (current) await ctx.db.replace(current._id, fields);
+    else await ctx.db.insert("profiles", fields);
+    return Boolean(current);
   },
 });
 
@@ -160,12 +169,17 @@ export const search = query({
     pincode: v.optional(v.string()),
     trade: v.optional(v.string()),
     job: v.optional(v.string()),
+    profession: v.optional(v.string()),
+    related: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const state = lower(clean(args.state, 100));
     if (!state) return [];
     const city = lower(clean(args.city, 100));
-    const pincode = clean(args.pincode, 6);
+    const pincode = (args.pincode ?? "").trim();
+    const profession = normalizeProfession(canonicalProfession(clean(args.profession, 120)));
+    const relatedWords = new Set(profession.split(/[^\p{L}\p{M}\p{N}]+/u).filter(word => word.length >= 3));
+    const stitching = isStitchingQuery(profession);
     const trade = lower(clean(args.trade, 100));
     const job = lower(clean(args.job, 120));
 
@@ -186,6 +200,17 @@ export const search = query({
       if (p.status !== "published") continue;
       if (trade && p.search.trade !== trade) continue;
       if (job && p.search.job !== job) continue;
+      if (profession) {
+        const title = normalizeProfession(canonicalProfession(p.jobProfile));
+        const category = normalizeProfession(p.trade ?? "");
+        const direct = title.includes(profession) || category.includes(profession);
+        const related = args.related && (
+          (stitching && stitchingJobs.some(role => title === normalizeProfession(role))) ||
+          [title, category, p.specialisation ?? ""].join(" ").toLocaleLowerCase("en-IN")
+            .split(/[^\p{L}\p{M}\p{N}]+/u).some(word => relatedWords.has(word))
+        );
+        if (!direct && !related) continue;
+      }
       results.push({
         id: p._id,
         name: p.name,
@@ -194,6 +219,7 @@ export const search = query({
         pincode: p.pincode,
         trade: p.trade,
         jobProfile: p.jobProfile,
+        experience: p.experience,
         expectedSalary: p.expectedSalary,
         specialisation: p.specialisation,
         email: p.email,

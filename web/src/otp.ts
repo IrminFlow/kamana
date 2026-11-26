@@ -46,12 +46,16 @@ export function setupOtpForm(
 
   send.addEventListener("click", async () => {
     if (!phone.reportValidity()) return;
+    const requestedPhone = phone.value;
     send.disabled = true;
+    confirmation = undefined;
+    sentTo = "";
+    verifiedToken = undefined;
     wait();
-    const result = await postJson("/api/send-otp", { phone: phone.value, purpose });
+    const result = await postJson("/api/send-otp", { phone: requestedPhone, purpose });
     if (result.ok && typeof result.phone === "string") {
       devMode = result.dev === true;
-      sentTo = phone.value;
+      sentTo = requestedPhone;
       verifiedToken = undefined;
       if (!devMode) {
         try {

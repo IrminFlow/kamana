@@ -13,6 +13,7 @@ type Profile = {
   pincode?: string;
   trade?: string;
   jobProfile: string;
+  experience?: string;
   expectedSalary?: string;
   specialisation?: string;
   status: "published" | "hidden";
@@ -101,6 +102,7 @@ function profileCard(p: Profile) {
     row("Mobile", `<a href="tel:${escapeHtml(p.phone)}">${escapeHtml(p.phone)}</a> · <a href="https://wa.me/${digits}" target="_blank" rel="noopener">WhatsApp</a>`, true) +
     row("Email", p.email) +
     row("Location", place) +
+    row("Experience", p.experience) +
     row("Salary", p.expectedSalary) +
     row("About", p.specialisation) +
     `</dl></div><div class="review-actions">` +
@@ -191,6 +193,7 @@ function profileForm(p?: Profile) {
     field("PIN code", "pincode", p?.pincode, 'inputmode="numeric" maxlength=6') +
     field("Trade", "trade", p?.trade, 'list="dl-trades" autocomplete="off"') +
     field("Job profile", "jobProfile", p?.jobProfile, 'required list="dl-jobs" autocomplete="off"') +
+    field("Experience", "experience", p?.experience, "maxlength=80") +
     field("Expected salary", "expectedSalary", p?.expectedSalary, "maxlength=80") +
     area("Specialisation / about", "specialisation", p?.specialisation) +
     `</div>` +

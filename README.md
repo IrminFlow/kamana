@@ -47,3 +47,9 @@ from the Firebase web app config.
 Firebase setup: Authentication → Sign-in method → Phone (enable); Settings → Authorized domains
 (add kamana.in and the Vercel domain); SMS region policy → allow India only; Blaze plan for SMS.
 The Vercel build runs `convex deploy`, which pushes functions and injects `VITE_CONVEX_URL`.
+
+## Daily profile report
+
+The Convex schedule sends a report to `info@kamana.in` at 12:10 a.m. India time.
+It covers the previous calendar day and sends an email on days with no new profiles.
+Deploy Convex with `RESEND_API_KEY` and a verified `MAIL_FROM` configured.
